@@ -86,14 +86,14 @@ Koi specific query poohein jaise: *"Kaunse products low stock me hain?"* ya *"To
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 shadow-md shadow-amber-500/20">
-            <Bot className="w-5 h-5 fill-slate-950" />
+          <div className="w-9 h-9 rounded-xl bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-bold shadow-xs">
+            <Bot className="w-5 h-5 fill-current" />
           </div>
           <div>
             <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
               <span>ElectroBill AI Assistant</span>
-              <span className="text-[10px] bg-amber-500/10 text-amber-600 font-bold px-1.5 py-0.2 rounded">
-                Read-Only Safe
+              <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                Safe Query Mode
               </span>
             </h2>
             <p className="text-[11px] text-slate-500">
@@ -114,7 +114,7 @@ Koi specific query poohein jaise: *"Kaunse products low stock me hain?"* ya *"To
           <button
             key={q}
             onClick={() => handleQuery(q)}
-            className="px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500 hover:text-amber-600 whitespace-nowrap text-[11px] transition-colors shadow-xs"
+            className="px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-black dark:hover:border-white whitespace-nowrap text-[11px] transition-colors shadow-2xs font-medium"
           >
             ✨ {q}
           </button>
@@ -131,24 +131,24 @@ Koi specific query poohein jaise: *"Kaunse products low stock me hain?"* ya *"To
             <div
               className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
                 m.sender === "USER"
-                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "bg-amber-500 text-slate-950"
+                  ? "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white"
+                  : "bg-black text-white dark:bg-white dark:text-black"
               }`}
             >
-              {m.sender === "USER" ? <User className="w-4 h-4" /> : <Zap className="w-4 h-4 fill-slate-950" />}
+              {m.sender === "USER" ? <User className="w-4 h-4" /> : <Zap className="w-4 h-4 fill-current" />}
             </div>
 
             <div
               className={`p-3.5 rounded-2xl max-w-lg text-xs leading-relaxed ${
                 m.sender === "USER"
-                  ? "bg-amber-500 text-slate-950 font-medium rounded-tr-none"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none whitespace-pre-line"
+                  ? "bg-black text-white dark:bg-white dark:text-black font-medium rounded-tr-none shadow-xs"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none whitespace-pre-line border border-slate-200/50 dark:border-slate-700/50"
               }`}
             >
               {m.text}
               <span
                 className={`block text-[9px] mt-1.5 ${
-                  m.sender === "USER" ? "text-slate-800/70 text-right" : "text-slate-400"
+                  m.sender === "USER" ? "text-slate-300 dark:text-slate-700 text-right" : "text-slate-400"
                 }`}
               >
                 {m.time}
@@ -165,12 +165,12 @@ Koi specific query poohein jaise: *"Kaunse products low stock me hain?"* ya *"To
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask in Hindi or English (e.g. 'Aaj ki sales kitni hui?')..."
-          className="w-full pl-4 pr-12 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white shadow-xs"
+          className="w-full pl-4 pr-12 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs outline-none focus:border-black focus:ring-1 focus:ring-black text-slate-900 dark:text-white shadow-xs font-medium"
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="absolute right-2 top-2 p-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-slate-950 rounded-xl transition-all"
+          className="absolute right-2 top-2 p-2 bg-black hover:bg-slate-800 disabled:opacity-40 text-white rounded-xl transition-all shadow-xs"
         >
           <Send className="w-4 h-4" />
         </button>

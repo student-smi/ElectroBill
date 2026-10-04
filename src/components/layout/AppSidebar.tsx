@@ -17,6 +17,7 @@ import {
   Settings,
   Zap,
   Lock,
+  LogOut,
 } from "lucide-react";
 
 export function AppSidebar({
@@ -27,7 +28,7 @@ export function AppSidebar({
   onClose?: () => void;
 }) {
   const pathname = usePathname();
-  const { user } = useApp();
+  const { user, logout } = useApp();
 
   const isOwner = user.role === "SHOP_OWNER";
   const isManager = user.role === "MANAGER" || isOwner;
@@ -44,6 +45,11 @@ export function AppSidebar({
     { name: "AI Shop Assistant", href: "/ai-assistant", icon: Bot, permitted: true, badge: "AI" },
     { name: "Shop Settings", href: "/settings", icon: Settings, permitted: isOwner },
   ];
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/login";
+  };
 
   return (
     <>
@@ -133,16 +139,27 @@ export function AppSidebar({
           })}
         </nav>
 
-        {/* User Role Card */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+        {/* User Role Card & Logout */}
+        <div className="p-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center justify-between text-xs">
-            <div>
-              <p className="font-bold text-slate-900 dark:text-white">{user.name}</p>
-              <p className="text-[10px] text-slate-500 font-mono">
-                {user.role.replace("_", " ")}
-              </p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-bold text-xs shrink-0">
+                {user.name.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900 dark:text-white truncate text-xs">{user.name}</p>
+                <p className="text-[10px] text-slate-500 font-mono uppercase truncate">
+                  {user.role.replace("_", " ")}
+                </p>
+              </div>
             </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-500" title="Online" />
+            <button
+              onClick={handleLogout}
+              title="Sign Out of ElectroBill"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>

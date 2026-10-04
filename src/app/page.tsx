@@ -56,18 +56,24 @@ export default function LandingPage() {
             </a>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/login"
+              className="text-xs font-bold text-slate-700 hover:text-black px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-all"
+            >
+              Sign In
+            </Link>
             <Link
               href="/dashboard"
-              className="text-xs font-bold text-slate-700 hover:text-black px-3.5 py-1.5 rounded-lg border border-slate-300 hover:border-black transition-all"
+              className="hidden sm:inline-flex text-xs font-bold text-slate-700 hover:text-black px-3.5 py-1.5 rounded-lg border border-slate-300 hover:border-black transition-all"
             >
               Open Live Demo
             </Link>
             <Link
-              href="/onboarding"
+              href="/signup"
               className="text-xs font-extrabold bg-black text-white hover:bg-slate-800 px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
             >
-              <span>Setup Free</span>
+              <span>Register Shop</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
