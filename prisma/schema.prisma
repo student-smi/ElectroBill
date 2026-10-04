@@ -1,0 +1,465 @@
+// ElectroBill - Multi-Tenant Relational Schema for Indian Electrical Shops
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  SHOP_OWNER
+  MANAGER
+  CASHIER
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  BUSINESS
+  PRO
+}
+
+enum CustomerType {
+  NORMAL
+  ELECTRICIAN
+  CONTRACTOR
+  BUILDER
+  COMPANY
+}
+
+enum ElectricalUnit {
+  PIECE
+  METER
+  BOX
+  BUNDLE
+  ROLL
+  PACKET
+  SET
+  PAIR
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  CHEQUE
+  UDHAAR
+  SPLIT
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
+
+enum InventoryTxType {
+  PURCHASE
+  SALE
+  RETURN
+  ADJUSTMENT_ADD
+  ADJUSTMENT_SUB
+}
+
+model Shop {
+  id                 String           @id @default(uuid())
+  name               String
+  slug               String           @unique
+  ownerName          String
+  email              String           @unique
+  phone              String
+  address            String
+  city               String
+  state              String           @default("Maharashtra")
+  pincode            String
+  gstin              String?
+  pan                String?
+  logoUrl            String?
+  invoicePrefix      String           @default("EB-")
+  nextInvoiceNumber  Int              @default(1001)
+  termsAndConditions String?          @default("Goods once sold will be tested before delivery. Warranty as per manufacturer norms.")
+  plan               SubscriptionPlan @default(BASIC)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  users              User[]
+  categories         Category[]
+  brands             Brand[]
+  products           Product[]
+  customers          Customer[]
+  suppliers          Supplier[]
+  purchases          Purchase[]
+  invoices           Invoice[]
+  returns            SalesReturn[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  inventoryLogs      InventoryLog[]
+
+  @@map("shops")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  shopId       String
+  name         String
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  role         Role      @default(CASHIER)
+  isActive     Boolean   @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+  auditLogs    AuditLog[]
+
+  @@index([shopId])
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String
+  description String?
+  isDefault   Boolean   @default(false)
+
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products    Product[]
+
+  @@unique([shopId, name])
+  @@map("categories")
+}
+
+model Brand {
+  id          String    @id @default(uuid())
+  shopId      String
+  name        String
+  products    Product[]
+
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, name])
+  @@map("brands")
+}
+
+model Product {
+  id               String         @id @default(uuid())
+  shopId           String
+  categoryId       String
+  brandId          String?
+  name             String
+  sku              String
+  barcode          String?
+  description      String?
+  unit             ElectricalUnit @default(PIECE)
+  
+  // Multi-tier Pricing
+  purchasePrice    Float
+  retailPrice      Float
+  electricianPrice Float
+  contractorPrice  Float
+  wholesalePrice   Float
+  
+  gstRate          Float          @default(18.0) // 5%, 12%, 18%, 28%
+  hsnCode          String         @default("8536") // Electrical apparatus HSN
+  
+  // Inventory (supports decimal for wire meters)
+  openingStock     Float          @default(0)
+  currentStock     Float          @default(0)
+  minStockAlert    Float          @default(10)
+  
+  // Wire / Cable Specific Specifications
+  isCable          Boolean        @default(false)
+  cableType        String?        // Copper, Aluminium, Armoured, Flexible
+  coreCount        Int?           // 1, 2, 3, 4 Core
+  crossSection     String?        // 0.75 sq.mm, 1.0 sq.mm, 1.5 sq.mm, 2.5 sq.mm, 4.0 sq.mm, 6.0 sq.mm
+  wireColor        String?        // Red, Black, Green, Blue, Yellow
+  
+  warrantyMonths   Int            @default(0)
+  imageUrl         String?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  shop             Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category         Category       @relation(fields: [categoryId], references: [id])
+  brand            Brand?         @relation(fields: [brandId], references: [id])
+  invoiceItems     InvoiceItem[]
+  purchaseItems    PurchaseItem[]
+  returnItems      ReturnItem[]
+  inventoryLogs    InventoryLog[]
+
+  @@unique([shopId, sku])
+  @@index([shopId, barcode])
+  @@index([shopId, name])
+  @@map("products")
+}
+
+model Customer {
+  id             String                @id @default(uuid())
+  shopId         String
+  name           String
+  phone          String
+  email          String?
+  address        String?
+  customerType   CustomerType          @default(NORMAL)
+  gstin          String?
+  openingBalance Float                 @default(0)
+  creditLimit    Float                 @default(50000)
+  currentUdhaar  Float                 @default(0)
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  shop           Shop                  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+  transactions   CustomerTransaction[]
+
+  @@index([shopId, phone])
+  @@map("customers")
+}
+
+model CustomerTransaction {
+  id            String        @id @default(uuid())
+  shopId        String
+  customerId    String
+  invoiceId     String?
+  amount        Float
+  type          String        // "DEBIT" (Invoice Udhaar), "CREDIT" (Payment received)
+  paymentMethod PaymentMethod @default(CASH)
+  referenceNo   String?
+  notes         String?
+  balanceAfter  Float
+  createdAt     DateTime      @default(now())
+
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, customerId])
+  @@map("customer_transactions")
+}
+
+model Supplier {
+  id             String     @id @default(uuid())
+  shopId         String
+  name           String
+  company        String
+  phone          String
+  email          String?
+  address        String?
+  gstin          String?
+  totalPurchases Float      @default(0)
+  pendingAmount  Float      @default(0)
+  notes          String?
+  createdAt      DateTime   @default(now())
+
+  shop           Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  purchases      Purchase[]
+
+  @@index([shopId])
+  @@map("suppliers")
+}
+
+model Purchase {
+  id             String         @id @default(uuid())
+  shopId         String
+  supplierId     String
+  purchaseNumber String
+  billNumber     String?
+  purchaseDate   DateTime       @default(now())
+  subtotal       Float
+  taxAmount      Float
+  totalAmount    Float
+  paidAmount     Float          @default(0)
+  dueAmount      Float          @default(0)
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  notes          String?
+  createdAt      DateTime       @default(now())
+
+  shop           Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  supplier       Supplier       @relation(fields: [supplierId], references: [id])
+  items          PurchaseItem[]
+
+  @@unique([shopId, purchaseNumber])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id          String   @id @default(uuid())
+  purchaseId  String
+  productId   String
+  quantity    Float
+  unitCost    Float
+  gstRate     Float
+  totalCost   Float
+
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@map("purchase_items")
+}
+
+model Invoice {
+  id             String         @id @default(uuid())
+  shopId         String
+  customerId     String?
+  userId         String?
+  invoiceNumber  String
+  invoiceDate    DateTime       @default(now())
+  
+  // Customer details cached for historical accuracy
+  customerName   String
+  customerPhone  String
+  customerType   CustomerType   @default(NORMAL)
+  customerGstin  String?
+  customerAddress String?
+  
+  // Totals
+  subtotal       Float
+  discountAmount Float          @default(0)
+  discountRate   Float          @default(0)
+  taxableAmount  Float
+  cgstAmount     Float          @default(0)
+  sgstAmount     Float          @default(0)
+  igstAmount     Float          @default(0)
+  totalTax       Float
+  roundOff       Float          @default(0)
+  grandTotal     Float
+  
+  // Payment
+  paymentMethod  PaymentMethod  @default(CASH)
+  paymentStatus  PaymentStatus  @default(PAID)
+  paidAmount     Float
+  dueAmount      Float          @default(0)
+  
+  notes          String?
+  isReturned     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+
+  shop           Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customer       Customer?      @relation(fields: [customerId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+  items          InvoiceItem[]
+  returns        SalesReturn[]
+
+  @@unique([shopId, invoiceNumber])
+  @@index([shopId, invoiceDate])
+  @@index([shopId, customerPhone])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id             String         @id @default(uuid())
+  invoiceId      String
+  productId      String
+  productName    String
+  sku            String
+  hsnCode        String
+  unit           ElectricalUnit
+  quantity       Float
+  rate           Float
+  discountAmount Float          @default(0)
+  taxableValue   Float
+  gstRate        Float
+  gstAmount      Float
+  total          Float
+  warrantyMonths Int            @default(0)
+  warrantyExpiry DateTime?
+
+  invoice        Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model SalesReturn {
+  id           String       @id @default(uuid())
+  shopId       String
+  invoiceId    String
+  returnNumber String
+  returnDate   DateTime     @default(now())
+  totalRefund  Float
+  reason       String?
+  createdAt    DateTime     @default(now())
+
+  shop         Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id])
+  items        ReturnItem[]
+
+  @@map("sales_returns")
+}
+
+model ReturnItem {
+  id           String      @id @default(uuid())
+  returnId     String
+  productId    String
+  quantity     Float
+  refundRate   Float
+  totalRefund  Float
+
+  salesReturn  SalesReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  product      Product     @relation(fields: [productId], references: [id])
+
+  @@map("return_items")
+}
+
+model InventoryLog {
+  id           String          @id @default(uuid())
+  shopId       String
+  productId    String
+  type         InventoryTxType
+  quantity     Float
+  stockBefore  Float
+  stockAfter   Float
+  referenceId  String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+
+  shop         Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id])
+
+  @@index([shopId, productId])
+  @@map("inventory_logs")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  shopId        String
+  userId        String?
+  action        String
+  entity        String
+  entityId      String?
+  previousValue String?
+  newValue      String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  shopId    String
+  type      String   // LOW_STOCK, OUT_OF_STOCK, PENDING_PAYMENT, WARRANTY, SALES
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, isRead])
+  @@map("notifications")
+}
